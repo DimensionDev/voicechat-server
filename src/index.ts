@@ -1,12 +1,12 @@
-const PORT = 3000
+const PORT = 3000;
 
-const channels: Record<any, any> = {}
-const sockets: Record<string, SocketIO.Socket> = {}
+const channels: Record<any, any> = {};
+const sockets: Record<string, SocketIO.Socket> = {};
 
 interface WebsocketInt {
-    io: SocketIO.Server
-    getUniqueID(): string
-    channels: Record<string, any>
+    io: SocketIO.Server;
+    getUniqueID(): string;
+    channels: Record<string, any>;
 }
 
 const IO = require('socket.io')(PORT, {
@@ -14,8 +14,8 @@ const IO = require('socket.io')(PORT, {
         origin: '*',
         methods: ['GET', 'POST'],
     },
-})
-console.log('-- Voicechat Server running on ::', PORT)
+});
+console.log('-- Voicechat Server running on ::', PORT);
 
 const wss: WebsocketInt = {
     io: IO,
@@ -23,12 +23,12 @@ const wss: WebsocketInt = {
         const s4 = () => {
             return Math.floor((1 + Math.random()) * 0x10000)
                 .toString(16)
-                .substring(1)
-        }
-        return s4() + s4() + '-' + s4()
+                .substring(1);
+        };
+        return s4() + s4() + '-' + s4();
     },
     channels: {},
-}
+};
 
 /**
  * Users will connect to the signaling server, after which they'll issue a "join"
@@ -41,35 +41,35 @@ const wss: WebsocketInt = {
  * the peer connection and will be streaming audio/video between eachother.
  */
 wss.io.on('connection', function (socket: any) {
-    socket.channels = {}
+    socket.channels = {};
 
-    sockets[socket.id] = socket
+    sockets[socket.id] = socket;
 
-    console.log(`[${socket.id}] Connection accepted`)
+    console.log(`[${socket.id}] Connection accepted`);
 
     socket.on('disconnect', function () {
         for (const channel in socket.channels) {
-            part(channel)
+            part(channel);
         }
 
-        console.log(`[${socket.id}] Disconnected`)
+        console.log(`[${socket.id}] Disconnected`);
 
-        delete sockets[socket.id]
-    })
+        delete sockets[socket.id];
+    });
 
     socket.on('join', function (config: any) {
-        socket.userdata = config.userdata
-        console.log(`[${socket.id}] joining`, config)
+        socket.userdata = config.userdata;
+        console.log(`[${socket.id}] joining`, config);
 
-        const channel = config.channel
+        const channel = config.channel;
 
         if (channel in socket.channels) {
-            console.log(`[${socket.id}] ERROR: Already joined`)
-            return
+            console.log(`[${socket.id}] ERROR: Already joined`);
+            return;
         }
 
         if (!(channel in channels)) {
-            channels[channel] = {}
+            channels[channel] = {};
         }
 
         for (const id in channels[channel]) {
@@ -77,52 +77,52 @@ wss.io.on('connection', function (socket: any) {
                 peer_id: socket.id,
                 should_create_offer: false,
                 userdata: socket.userdata,
-            })
-            socket.emit('addPeer', { peer_id: id, should_create_offer: true, userdata: channels[channel][id].userdata })
+            });
+            socket.emit('addPeer', { peer_id: id, should_create_offer: true, userdata: channels[channel][id].userdata });
         }
 
-        channels[channel][socket.id] = socket
-        socket.channels[channel] = channel
-    })
+        channels[channel][socket.id] = socket;
+        socket.channels[channel] = channel;
+    });
 
     const part = (channel: any) => {
-        console.log(`[${socket.id}] part`)
+        console.log(`[${socket.id}] part`);
 
         if (!(channel in socket.channels)) {
-            console.log(`[${socket.id}] ERROR: Not in `, channel)
-            return
+            console.log(`[${socket.id}] ERROR: Not in `, channel);
+            return;
         }
 
-        delete socket.channels[channel]
-        delete channels[channel][socket.id]
+        delete socket.channels[channel];
+        delete channels[channel][socket.id];
 
         for (const id in channels[channel]) {
-            channels[channel][id].emit('removePeer', { peer_id: socket.id })
-            socket.emit('removePeer', { peer_id: id })
+            channels[channel][id].emit('removePeer', { peer_id: socket.id });
+            socket.emit('removePeer', { peer_id: id });
         }
-    }
+    };
 
-    socket.on('part', part)
+    socket.on('part', part);
 
     socket.on('relayICECandidate', (config: any) => {
-        const peerID = config.peer_id
-        const iceCandidate = config.ice_candidate
+        const peerID = config.peer_id;
+        const iceCandidate = config.ice_candidate;
 
-        console.log(`[${socket.id}] relaying ICE candidate to [${peerID}]`, iceCandidate)
+        console.log(`[${socket.id}] relaying ICE candidate to [${peerID}]`, iceCandidate);
 
         if (peerID in sockets) {
-            sockets[peerID].emit('iceCandidate', { peer_id: socket.id, ice_candidate: iceCandidate })
+            sockets[peerID].emit('iceCandidate', { peer_id: socket.id, ice_candidate: iceCandidate });
         }
-    })
+    });
 
     socket.on('relaySessionDescription', (config: any) => {
-        const peerID = config.peer_id
-        const sessionDescription = config.session_description
+        const peerID = config.peer_id;
+        const sessionDescription = config.session_description;
 
-        console.log(`[${socket.id}] relaying session description to [${peerID}]`, sessionDescription)
+        console.log(`[${socket.id}] relaying session description to [${peerID}]`, sessionDescription);
 
         if (peerID in sockets) {
-            sockets[peerID].emit('sessionDescription', { peer_id: socket.id, session_description: sessionDescription })
+            sockets[peerID].emit('sessionDescription', { peer_id: socket.id, session_description: sessionDescription });
         }
-    })
-})
+    });
+});
