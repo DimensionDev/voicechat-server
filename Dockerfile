@@ -1,18 +1,13 @@
-FROM node:15
-
-# Create app directory
-WORKDIR /usr/src/app
-
-# Install app dependencies
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
-# where available (npm@5+)
-COPY package*.json ./
-
-# RUN npm install -g yarn
-RUN yarn install
-
-# Bundle app source
+FROM node:lts-alpine
+WORKDIR /app
 COPY . .
+RUN npm ci \
+    && npm run build \
+    && npm ci --production
 
+FROM node:lts-alpine
+WORKDIR /app
+COPY --from=0 /app/node_modules /app
+COPY --from=0 /app/dist /app/dist
 EXPOSE 3000
-CMD [ "./node_modules/ts-node/dist/bin.js", "src/index.ts" ]
+CMD [ "node", "./dist/index.ts" ]
