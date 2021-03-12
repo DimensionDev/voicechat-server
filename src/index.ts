@@ -30,6 +30,12 @@ const wss: WebsocketInt = {
     channels: {},
 }
 
+// Allow process to catch SIGINT from docker
+process.on('SIGINT', () => {
+    console.info('Interrupted')
+    process.exit(0)
+})
+
 /**
  * Users will connect to the signaling server, after which they'll issue a "join"
  * to join a particular channel. The signaling server keeps track of all sockets
