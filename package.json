@@ -12,10 +12,11 @@
         "build": "tsc"
     },
     "dependencies": {
-        "socket.io": "^3.1.2"
+        "socket.io": "^3.1.2",
+        "uuid": "^8.3.2"
     },
     "devDependencies": {
-        "@types/socket.io": "^2.1.13",
+        "@types/uuid": "^8.3.0",
         "ts-node": "^9.1.1",
         "ts-node-dev": "^1.1.6",
         "typescript": "^4.2.2"

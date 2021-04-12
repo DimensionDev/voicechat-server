@@ -1,15 +1,17 @@
+import { Server, Socket } from 'socket.io'
+import { v4 as uuid } from 'uuid'
 const PORT = 3000
 
 const channels: Record<any, any> = {}
-const sockets: Record<string, SocketIO.Socket> = {}
+const sockets: Record<string, Socket> = {}
 
 interface WebsocketInt {
-    io: SocketIO.Server
+    io: Server
     getUniqueID(): string
     channels: Record<string, any>
 }
 
-const IO = require('socket.io')(PORT, {
+const IO = new Server(PORT, {
     cors: {
         origin: '*',
         methods: ['GET', 'POST'],
@@ -19,14 +21,7 @@ console.log('-- Voicechat Server running on ::', PORT)
 
 const wss: WebsocketInt = {
     io: IO,
-    getUniqueID: (): string => {
-        const s4 = () => {
-            return Math.floor((1 + Math.random()) * 0x10000)
-                .toString(16)
-                .substring(1)
-        }
-        return s4() + s4() + '-' + s4()
-    },
+    getUniqueID: uuid,
     channels: {},
 }
 
