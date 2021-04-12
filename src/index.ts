@@ -2,13 +2,13 @@ import { Server, Socket } from 'socket.io'
 import { v4 as uuid } from 'uuid'
 const PORT = 3000
 
-const channels: Record<any, any> = {}
+const channels: Record<string, Record<string, SocketWithExtraData>> = {}
 const sockets: Record<string, Socket> = {}
 
 interface WebsocketInt {
     io: Server
     getUniqueID(): string
-    channels: Record<string, any>
+    channels: Record<string, unknown>
 }
 
 const IO = new Server(PORT, {
@@ -31,6 +31,10 @@ process.on('SIGINT', () => {
     process.exit(0)
 })
 
+interface SocketWithExtraData extends Socket {
+    userdata: unknown
+    channels: Record<string, unknown>
+}
 /**
  * Users will connect to the signaling server, after which they'll issue a "join"
  * to join a particular channel. The signaling server keeps track of all sockets
@@ -41,8 +45,8 @@ process.on('SIGINT', () => {
  * information. After all of that happens, they'll finally be able to complete
  * the peer connection and will be streaming audio/video between eachother.
  */
-wss.io.on('connection', function (socket: any) {
-    socket.channels = {}
+wss.io.on('connection', function (socket: SocketWithExtraData) {
+    socket.channels = Object.create(null)
 
     sockets[socket.id] = socket
 
@@ -58,7 +62,7 @@ wss.io.on('connection', function (socket: any) {
         delete sockets[socket.id]
     })
 
-    socket.on('join', function (config: any) {
+    socket.on('join', function (config: { userdata: unknown; channel: string }) {
         socket.userdata = config.userdata
         console.log(`[${socket.id}] joining`, config)
 
@@ -70,7 +74,7 @@ wss.io.on('connection', function (socket: any) {
         }
 
         if (!(channel in channels)) {
-            channels[channel] = {}
+            channels[channel] = Object.create(null)
         }
 
         for (const id in channels[channel]) {
@@ -86,7 +90,7 @@ wss.io.on('connection', function (socket: any) {
         socket.channels[channel] = channel
     })
 
-    const part = (channel: any) => {
+    const part = (channel: string) => {
         console.log(`[${socket.id}] part`)
 
         if (!(channel in socket.channels)) {
@@ -105,7 +109,11 @@ wss.io.on('connection', function (socket: any) {
 
     socket.on('part', part)
 
-    socket.on('relayICECandidate', (config: any) => {
+    type Type1 = {
+        peer_id: string
+        ice_candidate: string
+    }
+    socket.on('relayICECandidate', (config: Type1) => {
         const peerID = config.peer_id
         const iceCandidate = config.ice_candidate
 
@@ -116,7 +124,7 @@ wss.io.on('connection', function (socket: any) {
         }
     })
 
-    socket.on('relaySessionDescription', (config: any) => {
+    socket.on('relaySessionDescription', (config: Type1 & { session_description: string }) => {
         const peerID = config.peer_id
         const sessionDescription = config.session_description
 
